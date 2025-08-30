@@ -1,4 +1,10 @@
 package com.aej.cecarticulo.dao;
 
-public class ArticuloRepository {
+import com.aej.cecarticulo.model.ArticuloModel;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ArticuloRepository extends MongoRepository<ArticuloModel, String> {
+    // Puedes agregar métodos personalizados aquí si lo necesitas
 }
