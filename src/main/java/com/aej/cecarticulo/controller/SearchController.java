@@ -18,9 +18,10 @@ public class SearchController {
     @Autowired
     IArticuloService articuloService;
 
-    @GetMapping
-    public List<ArticuloModel> getArticulos(){
-        return articuloService.getArticulos();
+    @GetMapping(value = "/articles",  produces = "application/json")
+    public ResponseEntity<List<ArticuloModel>>getArticulos(){
+        List<ArticuloModel> ats = articuloService.getArticulos();
+        return ResponseEntity.ok(ats);
     }
     @GetMapping("/search")
     public ResponseEntity<String> Search(

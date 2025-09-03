@@ -1,5 +1,4 @@
 package com.aej.cecarticulo.services;
-
 import com.aej.cecarticulo.dao.ArticuloRepository;
 import com.aej.cecarticulo.model.ArticuloModel;
 import com.aej.cecarticulo.model.ArxivEntry;
@@ -7,13 +6,12 @@ import com.aej.cecarticulo.model.ArxivFeed;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
+
+import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -23,16 +21,22 @@ public class ArticuloServiceImpl implements IArticuloService {
     @Autowired
     private ArticuloRepository articuloRepository;
 
-
+    @Autowired
+    private RestTemplate client;
 
     private final String BASE_URL  = "https://export.arxiv.org/api/query?search_query=all:%s&start=0&max_results=%d";
+
+
+    public String getArxivXml(String url) {
+        return client.getForObject(url, String.class);
+    }
 
     @Override
     public List<ArticuloModel> getArticulos() {
         return articuloRepository.findAll();
     }
 
-        @Override
+    @Override
         public int SearchAndSaveArticles(String query, int maxResults) {
             try {
 
@@ -40,13 +44,9 @@ public class ArticuloServiceImpl implements IArticuloService {
                 String url = String.format(BASE_URL, query.replace(" ", "+"), maxResults);
 
                 URI uri = URI.create(url);
-                HttpClient client = HttpClient.newHttpClient();
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .build();
 
-                String xmlContent = client.send(request, HttpResponse.BodyHandlers.ofString())
-                        .body();
+
+                String xmlContent = getArxivXml(url);
 
 
                 Path filePath = Path.of("downloads", "arxiv_" + query + ".xml");
@@ -55,6 +55,8 @@ public class ArticuloServiceImpl implements IArticuloService {
 
                 XmlMapper xmlMapper = new XmlMapper();
                 ArxivFeed feed = xmlMapper.readValue(xmlContent, ArxivFeed.class);
+
+
 
                 for (ArxivEntry entry : feed.getEntry()) {
                     ArticuloModel articulo = new ArticuloModel();
