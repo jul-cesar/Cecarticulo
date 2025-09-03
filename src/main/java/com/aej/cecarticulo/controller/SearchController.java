@@ -2,9 +2,12 @@ package com.aej.cecarticulo.controller;
 
 
 import com.aej.cecarticulo.model.ArticuloModel;
-import com.aej.cecarticulo.services.ArticuloServiceImpl;
+
+import com.aej.cecarticulo.services.IArticuloService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -13,13 +16,20 @@ import java.util.List;
 public class SearchController {
 
     @Autowired
-    ArticuloServiceImpl articuloService;
+    IArticuloService articuloService;
 
     @GetMapping
     public List<ArticuloModel> getArticulos(){
         return articuloService.getArticulos();
     }
-
+    @GetMapping("/search")
+    public ResponseEntity<String> Search(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "20") int maxResults
+    ) {
+        int count = articuloService.SearchAndSaveArticles(query, maxResults);
+        return ResponseEntity.ok("✅ Se encontraron " + count + " artículos para: " + query);
+    }
 
 
 }

@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface IArticuloService {
     public List<ArticuloModel>  getArticulos();
+    public int SearchAndSaveArticles(String query,int maxResults);
 }
