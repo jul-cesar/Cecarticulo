@@ -20,7 +20,7 @@ public class ArticuloModel {
     private List<String> categories;
     private String pdfUrl;
     private String text;
-    private List<byte[]> images;
+    private List<String> images;
     private List<String> keywords;
 
 

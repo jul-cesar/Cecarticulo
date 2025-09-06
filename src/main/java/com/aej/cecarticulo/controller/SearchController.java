@@ -9,6 +9,7 @@ import com.aej.cecarticulo.model.ProgressStatus;
 import com.aej.cecarticulo.services.IArticuloService;
 import com.aej.cecarticulo.services.IProcessArticles;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,8 +27,11 @@ public class SearchController {
     IProcessArticles processArticles;
 
     @GetMapping(value = "/articles",  produces = "application/json")
-    public ResponseEntity<List<ArticuloModel>>getArticulos(){
-        List<ArticuloModel> ats = articuloService.getArticulos();
+    public ResponseEntity<Page<ArticuloModel>>getArticulos(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ){
+        Page<ArticuloModel> ats = articuloService.getArticulos(page,size);
         return ResponseEntity.ok(ats);
     }
     @GetMapping("/search")

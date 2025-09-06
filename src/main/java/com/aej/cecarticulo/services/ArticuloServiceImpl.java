@@ -14,6 +14,10 @@ import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -33,6 +37,7 @@ import java.nio.file.Path;
 
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -49,7 +54,7 @@ public class ArticuloServiceImpl implements IArticuloService {
     private final String BASE_URL = "https://export.arxiv.org/api/query?search_query=all:%s&start=0&max_results=%d";
 
     @Override
-    public void SaveEntriesToMongo(ArxivEntry entry) {
+    public void SaveEntriesToMongo(ArxivEntry entry, String text, List<String> imgs, List<String> keywords) {
 
         ArticuloModel articulo = new ArticuloModel();
         articulo.setTitle(entry.getTitle());
@@ -57,7 +62,9 @@ public class ArticuloServiceImpl implements IArticuloService {
         articulo.setPublishedDate(entry.getPublished());
         articulo.setAuthors(entry.getAuthor().stream().map(ArxivEntry.Author::getName).toList());
         articulo.setCategories(entry.getCategory().stream().map(ArxivEntry.Category::getTerm).toList());
-
+        articulo.setImages(imgs);
+        articulo.setKeywords(keywords);
+        articulo.setText(text);
         entry.getLink().stream()
                 .filter(l -> "application/pdf".equals(l.getType()))
                 .findFirst()
@@ -129,9 +136,13 @@ public class ArticuloServiceImpl implements IArticuloService {
         return client.getForObject(url, String.class);
     }
 
+
+
+
     @Override
-    public List<ArticuloModel> getArticulos() {
-        return articuloRepository.findAll();
+    public Page<ArticuloModel> getArticulos(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return articuloRepository.findAll(pageable);
     }
 
     @Override
@@ -179,7 +190,7 @@ public class ArticuloServiceImpl implements IArticuloService {
             List<String> images = extractImagesFromPdf(pdfBytes);
             List<String> keywords = generateKeywordsLLM(entry.getSummary());
 
-            SaveEntriesToMongo(entry);
+            SaveEntriesToMongo(entry, text, images, keywords);
 
         }catch (Exception e) {
             System.err.println("❌ Error procesando artículo: " + entry.getTitle() + " -> " + e.getMessage());
