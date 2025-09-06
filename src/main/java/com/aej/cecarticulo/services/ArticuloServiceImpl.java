@@ -1,6 +1,7 @@
 package com.aej.cecarticulo.services;
 
 import com.aej.cecarticulo.dao.ArticuloRepository;
+import com.aej.cecarticulo.dto.SearchArticlesDTO;
 import com.aej.cecarticulo.model.ArticuloModel;
 import com.aej.cecarticulo.model.ArxivEntry;
 import com.aej.cecarticulo.model.ArxivFeed;
@@ -26,16 +27,19 @@ import java.io.ByteArrayOutputStream;
 import java.net.URI;
 
 
-import java.net.http.HttpResponse;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
 @Service
 public class ArticuloServiceImpl implements IArticuloService {
+
+
+
     @Autowired
     private ArticuloRepository articuloRepository;
 
@@ -90,10 +94,7 @@ public class ArticuloServiceImpl implements IArticuloService {
     }
 
 
-    @Override
-    public ProgressStatus getProgressStatus() {
-        return null;
-    }
+
 
     @Override
     public byte[] DowloadPdf(String Url, String filename) {
@@ -134,7 +135,7 @@ public class ArticuloServiceImpl implements IArticuloService {
     }
 
     @Override
-    public List<ArxivEntry> SearchArticles(String query, int maxResults) {
+    public SearchArticlesDTO SearchArticles(String query, int maxResults) {
         try {
 
 
@@ -152,32 +153,43 @@ public class ArticuloServiceImpl implements IArticuloService {
 
             XmlMapper xmlMapper = new XmlMapper();
             ArxivFeed feed = xmlMapper.readValue(xmlContent, ArxivFeed.class);
-
-
-            return feed.getEntry();
+            SearchArticlesDTO searchArticlesDTO = new SearchArticlesDTO();
+            searchArticlesDTO.setArticles(feed.getEntry());
+            searchArticlesDTO.setCount(feed.getEntry().size());
+            return searchArticlesDTO;
 
 
         } catch (Exception e) {
             e.printStackTrace();
-            return List.of();
+            return new SearchArticlesDTO();
         }
 
     }
 
     @Override
     public void ProcessAndSave(ArxivEntry entry) {
-        String pdfUrl = entry.getLink().stream().filter(l -> "application/pdf".equals(l.getType())).findFirst().map(ArxivEntry.Link::getHref).orElse(null);
-        if (pdfUrl == null) {
-            return;
+        try {
+            String pdfUrl = entry.getLink().stream().filter(l -> "application/pdf".equals(l.getType())).findFirst().map(ArxivEntry.Link::getHref).orElse(null);
+            if (pdfUrl == null) {
+                return;
+            }
+            String filaname = sanitizeFilename(entry.getTitle());
+            byte[] pdfBytes = DowloadPdf(pdfUrl.replace("http://", "https://"), filaname);
+            String text = extractTextFromPdf(pdfBytes);
+            List<String> images = extractImagesFromPdf(pdfBytes);
+            List<String> keywords = generateKeywordsLLM(entry.getSummary());
+
+            SaveEntriesToMongo(entry);
+
+        }catch (Exception e) {
+            System.err.println("❌ Error procesando artículo: " + entry.getTitle() + " -> " + e.getMessage());
         }
-        byte[] pdfBytes = DowloadPdf(entry.getTitle(), entry.getTitle());
-        String text = extractTextFromPdf(pdfBytes);
-        List<String> images = extractImagesFromPdf(pdfBytes);
-        List<String> keywords = generateKeywordsLLM(entry.getSummary());
-
-        SaveEntriesToMongo(entry);
-
     }
 
+    private String sanitizeFilename(String filename) {
+        return filename.replaceAll("[\\\\/:*?\"<>|]", "_")
+                .replaceAll("\\s+", "_")
+                .trim();
+    }
 
 }
