@@ -165,7 +165,16 @@ public class ArticuloServiceImpl implements IArticuloService {
             XmlMapper xmlMapper = new XmlMapper();
             ArxivFeed feed = xmlMapper.readValue(xmlContent, ArxivFeed.class);
             SearchArticlesDTO searchArticlesDTO = new SearchArticlesDTO();
-            searchArticlesDTO.setArticles(feed.getEntry());
+//            Pageable pageable = PageRequest.of(page, size);
+            List<ArxivEntry> entries = feed.getEntry();
+//            searchArticlesDTO.setFeedEntries(entries);
+//            int start = (int) pageable.getOffset();
+//            int end = Math.min((start + pageable.getPageSize()), entries.size());
+//            List<ArxivEntry> sublist = entries.subList(start, end);
+//            Page<ArxivEntry> pageResult = new PageImpl<>(sublist, pageable, entries.size());
+
+
+            searchArticlesDTO.setArticles(entries);
             searchArticlesDTO.setCount(feed.getEntry().size());
             return searchArticlesDTO;
 

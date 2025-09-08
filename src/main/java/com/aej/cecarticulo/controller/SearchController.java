@@ -26,30 +26,31 @@ public class SearchController {
     @Autowired
     IProcessArticles processArticles;
 
-    @GetMapping(value = "/articles",  produces = "application/json")
-    public ResponseEntity<Page<ArticuloModel>>getArticulos(
+    @GetMapping(value = "/articles", produces = "application/json")
+    public ResponseEntity<Page<ArticuloModel>> getArticulos(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
-    ){
-        Page<ArticuloModel> ats = articuloService.getArticulos(page,size);
+    ) {
+        Page<ArticuloModel> ats = articuloService.getArticulos(page, size);
         return ResponseEntity.ok(ats);
     }
-    @GetMapping("/search")
+
+    @GetMapping(value = "/search", produces = "application/json")
     public ResponseEntity<String> Search(
             @RequestParam String query,
             @RequestParam(defaultValue = "20") int maxResults
+
     ) {
-         SearchArticlesDTO arts =  articuloService.SearchArticles(query, maxResults);
+        SearchArticlesDTO arts = articuloService.SearchArticles(query, maxResults);
         processArticles.processAndSaveArticles(arts.getArticles());
 
-        return ResponseEntity.ok("✅ Se encontraron " + arts.getCount() + " artículos para: " + query);
+        return ResponseEntity.ok("Se han encontrado " + arts.getCount() + " articulos " );
     }
 
     @GetMapping(value = "/progress", produces = "application/json")
     public ProgressStatus progress() {
         return processArticles.getProgress();
     }
-
 
 
 }

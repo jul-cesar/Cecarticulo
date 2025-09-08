@@ -1,7 +1,7 @@
 package com.aej.cecarticulo.services;
 
 import com.aej.cecarticulo.model.ArxivEntry;
-import com.aej.cecarticulo.model.ArxivFeed;
+
 import com.aej.cecarticulo.model.ProgressStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +16,7 @@ public class ProcessArticlesImpl implements IProcessArticles {
     private int total;
     private int procesados;
     private long startTime;
-
+    private long endTime;
     @Value("${app.threads}")
     private int threads;
     @Autowired
@@ -24,6 +24,8 @@ public class ProcessArticlesImpl implements IProcessArticles {
 
     @Autowired
     ExecutorService executor;
+
+    CountDownLatch latch = new CountDownLatch(this.threads);
 
     @Override
     public void processAndSaveArticles(List<ArxivEntry> articles) {
@@ -40,10 +42,19 @@ public class ProcessArticlesImpl implements IProcessArticles {
                         articuloService.ProcessAndSave(entry);
                         procesados++;
                     }
+                    this.endTime = System.currentTimeMillis();
                 } catch (Exception e) {
                     e.printStackTrace();
-                }
+                } finally {
+                latch.countDown();
+            }
             });
+        }
+        try {
+            latch.await();
+            this.endTime = System.currentTimeMillis();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
     }
@@ -52,7 +63,8 @@ public class ProcessArticlesImpl implements IProcessArticles {
         ProgressStatus status = new ProgressStatus();
         status.setTotal(total);
         status.setProcesados(procesados);
-        status.setTiempoSegundos((System.currentTimeMillis() - startTime) / 1000);
+            long tiempo = ( endTime - startTime ) / 1000;
+            status.setTiempoSegundos(tiempo >= 0 ? tiempo : 0);
         return status;
     }
 
