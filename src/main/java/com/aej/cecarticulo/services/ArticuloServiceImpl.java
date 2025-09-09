@@ -106,7 +106,7 @@ public class ArticuloServiceImpl implements IArticuloService {
         GenerateContentResponse response = gemini.models.generateContent(
 
                 "gemini-2.5-flash",
-                "This is the resume title and text of a article, give me 5 keywords, nothing else, the keywords in plain text separated by commas" + title + resumen + tex,
+                "This is the resume title and text of a article, give me 5 keywords (only 1 word), nothing else, the keywords in plain text separated by commas" + title + resumen + tex,
                 null
 
 
