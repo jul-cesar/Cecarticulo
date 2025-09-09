@@ -21,9 +21,10 @@ public interface IArticuloService {
 
     List<String> extractImagesFromPdf(byte[] pdfBytes);
 
-    List<String> generateKeywordsLLM( String resume);
+    List<String> generateKeywordsLLM(String title, String resumen, String text);
 
 
     byte[] DowloadPdf(String Url, String filename);
     String extractTextFromPdf(byte[] pdfBytes);
+
 }

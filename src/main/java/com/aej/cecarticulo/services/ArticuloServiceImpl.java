@@ -7,6 +7,8 @@ import com.aej.cecarticulo.model.ArxivEntry;
 import com.aej.cecarticulo.model.ArxivFeed;
 import com.aej.cecarticulo.model.ProgressStatus;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.google.genai.types.GenerateContentResponse;
+import org.apache.coyote.Response;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -35,15 +37,18 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+
+import com.google.genai.Client;
+
+
 
 @Service
 public class ArticuloServiceImpl implements IArticuloService {
 
+    Client gemini = new Client(
 
+    );
 
     @Autowired
     private ArticuloRepository articuloRepository;
@@ -52,6 +57,7 @@ public class ArticuloServiceImpl implements IArticuloService {
     private RestTemplate client;
 
     private final String BASE_URL = "https://export.arxiv.org/api/query?search_query=all:%s&start=0&max_results=%d";
+
 
     @Override
     public void SaveEntriesToMongo(ArxivEntry entry, String text, List<String> imgs, List<String> keywords) {
@@ -96,8 +102,24 @@ public class ArticuloServiceImpl implements IArticuloService {
     }
 
     @Override
-    public List<String> generateKeywordsLLM(String resume) {
-        return List.of();
+    public List<String> generateKeywordsLLM(String title, String resumen, String tex) {
+        GenerateContentResponse response = gemini.models.generateContent(
+
+                "gemini-2.5-flash",
+                "This is the resume title and text of a article, give me 5 keywords, nothing else, the keywords in plain text separated by commas" + title + resumen + tex,
+                null
+
+
+                );
+
+
+        List<String> keywords = Arrays.asList(response.text().split(",\\s*"));
+        keywords.replaceAll(String::trim);
+        if (keywords.size() > 10) {
+            return keywords.subList(0, 10);
+        }
+
+        return keywords;
     }
 
 
@@ -197,7 +219,7 @@ public class ArticuloServiceImpl implements IArticuloService {
             byte[] pdfBytes = DowloadPdf(pdfUrl.replace("http://", "https://"), filaname);
             String text = extractTextFromPdf(pdfBytes);
             List<String> images = extractImagesFromPdf(pdfBytes);
-            List<String> keywords = generateKeywordsLLM(entry.getSummary());
+            List<String> keywords = generateKeywordsLLM(entry.getTitle(), entry.getSummary(), text);
 
             SaveEntriesToMongo(entry, text, images, keywords);
 
