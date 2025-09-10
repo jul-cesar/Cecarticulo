@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ArticuloRepository extends MongoRepository<ArticuloModel, String> {
+    // Repositorio para manejar las operaciones CRUD en la colección de artículos
 }

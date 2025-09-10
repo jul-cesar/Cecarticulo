@@ -9,7 +9,7 @@ import java.util.concurrent.Executors;
 
 @Configuration
 public class ThreadPoolConfig {
-    @Value("${app.threads}")
+    @Value("${app.threads}")// Number of threads for the thread pool
     private int threads;
 
     @Bean

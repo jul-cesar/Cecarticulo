@@ -21,15 +21,15 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-public class SearchController {
+public class SearchController {  // Controlador REST para manejar las solicitudes relacionadas con los artículos
+
+    @Autowired // Inyección de dependencias
+    IArticuloService articuloService; // Servicio para manejar la lógica de negocio relacionada con los artículos
 
     @Autowired
-    IArticuloService articuloService;
-
+    IProcessArticles processArticles; // Servicio para procesar y guardar artículos
     @Autowired
-    IProcessArticles processArticles;
-    @Autowired
-    private ArticuloRepository articuloRepository;
+    private ArticuloRepository articuloRepository; // Repositorio para acceder a la base de datos de artículos
 
     @GetMapping(value = "/articles", produces = "application/json")
     public ResponseEntity<Page<ArticuloModel>> getArticulos(
@@ -38,7 +38,6 @@ public class SearchController {
     ) {
         int paginaSpringData = page - 1;
         Page<ArticuloModel> ats = articuloService.getArticulos(paginaSpringData, size);
-
             for(ArticuloModel articulo: ats.getContent() ) {
                 articulo.setText("");
             }
