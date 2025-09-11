@@ -1,14 +1,17 @@
 package com.aej.cecarticulo.services;
 
-import com.aej.cecarticulo.dao.ArticuloRepository;
-import com.aej.cecarticulo.dto.SearchArticlesDTO;
-import com.aej.cecarticulo.model.ArticuloModel;
-import com.aej.cecarticulo.model.ArxivEntry;
-import com.aej.cecarticulo.model.ArxivFeed;
-import com.aej.cecarticulo.model.ProgressStatus;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.google.genai.types.GenerateContentResponse;
-import org.apache.coyote.Response;
+import java.io.ByteArrayOutputStream;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+
+import javax.imageio.ImageIO;
+
+import org.apache.http.Header;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -17,7 +20,6 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
@@ -25,29 +27,22 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import org.springframework.web.client.RestTemplate;
 
-import javax.imageio.ImageIO;
-import java.io.ByteArrayOutputStream;
-import java.net.URI;
-
-
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import java.util.*;
-
+import com.aej.cecarticulo.dao.ArticuloRepository;
+import com.aej.cecarticulo.dto.SearchArticlesDTO;
+import com.aej.cecarticulo.model.ArticuloModel;
+import com.aej.cecarticulo.model.ArxivEntry;
+import com.aej.cecarticulo.model.ArxivFeed;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.google.genai.Client;
-
-
+import com.google.genai.types.GenerateContentResponse;
 
 @Service
 public class ArticuloServiceImpl implements IArticuloService {
 
     Client gemini = new Client(
-
+           
     );
 
     @Autowired
@@ -57,7 +52,6 @@ public class ArticuloServiceImpl implements IArticuloService {
     private RestTemplate client;
 
     private final String BASE_URL = "https://export.arxiv.org/api/query?search_query=all:%s&start=0&max_results=%d";
-
 
     @Override
     public void SaveEntriesToMongo(ArxivEntry entry, String text, List<String> imgs, List<String> keywords) {
@@ -106,12 +100,11 @@ public class ArticuloServiceImpl implements IArticuloService {
         GenerateContentResponse response = gemini.models.generateContent(
 
                 "gemini-2.5-flash",
-                "This is the resume title and text of a article, give me 5 keywords (only 1 word), nothing else, the keywords in plain text separated by commas" + title + resumen + tex,
+                "This is the resume title and text of a article, give me 5 keywords (only 1 word), nothing else, the keywords in plain text separated by commas"
+                        + title + resumen + tex,
                 null
 
-
-                );
-
+        );
 
         List<String> keywords = Arrays.asList(response.text().split(",\\s*"));
         keywords.replaceAll(String::trim);
@@ -122,16 +115,16 @@ public class ArticuloServiceImpl implements IArticuloService {
         return keywords;
     }
 
-
-
-
     @Override
     public byte[] DowloadPdf(String Url, String filename) {
         try {
-            ResponseEntity<byte[]> res = client.exchange(Url, HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), byte[].class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Type", "application/pdf");
+            ResponseEntity<byte[]> res = client.exchange(Url, HttpMethod.GET, new HttpEntity<>(headers),
+                    byte[].class);
 
             if (res.getStatusCode().is2xxSuccessful()) {
-                Path path = Path.of("pdfs", filename);
+                Path path = Path.of("pdfs", filename+".pdf");
                 Files.createDirectories(path.getParent());
                 Files.write(path, res.getBody());
                 System.out.println("PDF guardado en: " + path.toAbsolutePath());
@@ -158,9 +151,6 @@ public class ArticuloServiceImpl implements IArticuloService {
         return client.getForObject(url, String.class);
     }
 
-
-
-
     @Override
     public Page<ArticuloModel> getArticulos(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -171,14 +161,11 @@ public class ArticuloServiceImpl implements IArticuloService {
     public SearchArticlesDTO SearchArticles(String query, int maxResults) {
         try {
 
-
             String url = String.format(BASE_URL, query.replace(" ", "+"), maxResults);
 
             URI uri = URI.create(url);
 
-
             String xmlContent = getArxivXml(url);
-
 
             Path filePath = Path.of("downloads", "arxiv_" + query + ".xml");
             Files.createDirectories(filePath.getParent());
@@ -187,19 +174,18 @@ public class ArticuloServiceImpl implements IArticuloService {
             XmlMapper xmlMapper = new XmlMapper();
             ArxivFeed feed = xmlMapper.readValue(xmlContent, ArxivFeed.class);
             SearchArticlesDTO searchArticlesDTO = new SearchArticlesDTO();
-//            Pageable pageable = PageRequest.of(page, size);
+            // Pageable pageable = PageRequest.of(page, size);
             List<ArxivEntry> entries = feed.getEntry();
-//            searchArticlesDTO.setFeedEntries(entries);
-//            int start = (int) pageable.getOffset();
-//            int end = Math.min((start + pageable.getPageSize()), entries.size());
-//            List<ArxivEntry> sublist = entries.subList(start, end);
-//            Page<ArxivEntry> pageResult = new PageImpl<>(sublist, pageable, entries.size());
-
+            // searchArticlesDTO.setFeedEntries(entries);
+            // int start = (int) pageable.getOffset();
+            // int end = Math.min((start + pageable.getPageSize()), entries.size());
+            // List<ArxivEntry> sublist = entries.subList(start, end);
+            // Page<ArxivEntry> pageResult = new PageImpl<>(sublist, pageable,
+            // entries.size());
 
             searchArticlesDTO.setArticles(entries);
             searchArticlesDTO.setCount(feed.getEntry().size());
             return searchArticlesDTO;
-
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -211,7 +197,8 @@ public class ArticuloServiceImpl implements IArticuloService {
     @Override
     public void ProcessAndSave(ArxivEntry entry) {
         try {
-            String pdfUrl = entry.getLink().stream().filter(l -> "application/pdf".equals(l.getType())).findFirst().map(ArxivEntry.Link::getHref).orElse(null);
+            String pdfUrl = entry.getLink().stream().filter(l -> "application/pdf".equals(l.getType())).findFirst()
+                    .map(ArxivEntry.Link::getHref).orElse(null);
             if (pdfUrl == null) {
                 return;
             }
@@ -223,7 +210,7 @@ public class ArticuloServiceImpl implements IArticuloService {
 
             SaveEntriesToMongo(entry, text, images, keywords);
 
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.err.println("❌ Error procesando artículo: " + entry.getTitle() + " -> " + e.getMessage());
         }
     }
