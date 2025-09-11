@@ -130,3 +130,6 @@ La API estará disponible en `http://localhost:8080`.
 ```
 
 
+### Agregar variable de entorno GOOGLE_API_KEY 
+
+Usamos la api de gemini y esta nos obliga a usar una variable de entorno, no deja con el .properties
