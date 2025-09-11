@@ -97,22 +97,30 @@ public class ArticuloServiceImpl implements IArticuloService {
 
     @Override
     public List<String> generateKeywordsLLM(String title, String resumen, String tex) {
-        GenerateContentResponse response = gemini.models.generateContent(
+        try {
 
-                "gemini-2.5-flash",
-                "This is the resume title and text of a article, give me 5 keywords (only 1 word), nothing else, the keywords in plain text separated by commas"
-                        + title + resumen + tex,
-                null
 
-        );
+            GenerateContentResponse response = gemini.models.generateContent(
 
-        List<String> keywords = Arrays.asList(response.text().split(",\\s*"));
-        keywords.replaceAll(String::trim);
-        if (keywords.size() > 10) {
-            return keywords.subList(0, 10);
+                    "gemini-2.5-flash",
+                    "This is the resume title and text of a article, give me 5 keywords (only 1 word), nothing else, the keywords in plain text separated by commas"
+                            + title + resumen + tex,
+                    null
+
+            );
+
+            List<String> keywords = Arrays.asList(response.text().split(",\\s*"));
+            keywords.replaceAll(String::trim);
+            if (keywords.size() > 10) {
+                return keywords.subList(0, 10);
+            }
+
+            return keywords;
+        }catch (Exception e) {
+
+            throw new RuntimeException("Error generando keywords " , e);
+
         }
-
-        return keywords;
     }
 
     @Override
